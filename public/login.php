@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $statement = database()->prepare(
-                'SELECT id, full_name, username, password_hash, role
+                'SELECT id, full_name, username, profile_image, password_hash, role
                  FROM users
                  WHERE username = :username AND status = :status
                  LIMIT 1'
@@ -97,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <button type="submit" class="btn btn-primary sign-in-button w-100">Sign In</button>
+                <p class="signup-prompt mb-0">New to WIDMS? <a href="signup.php">Request an account</a></p>
             </form>
         </section>
     </main>

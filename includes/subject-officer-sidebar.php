@@ -4,6 +4,7 @@ declare(strict_types=1);
 $navigation = require __DIR__ . '/subject-officer-navigation.php';
 $activePage = $activePage ?? 'dashboard';
 $officerName = htmlspecialchars((string) $_SESSION['full_name'], ENT_QUOTES, 'UTF-8');
+$profileImage = !empty($_SESSION['profile_image']) ? htmlspecialchars((string) $_SESSION['profile_image'], ENT_QUOTES, 'UTF-8') : '';
 ?>
 <aside class="sidebar" id="admin-sidebar">
     <div class="sidebar-brand">
@@ -12,10 +13,10 @@ $officerName = htmlspecialchars((string) $_SESSION['full_name'], ENT_QUOTES, 'UT
         <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close navigation">&times;</button>
     </div>
 
-    <div class="admin-profile">
-        <span class="profile-avatar subject-avatar"><?= strtoupper(substr($officerName, 0, 1)) ?></span>
+    <a class="admin-profile profile-link" href="profile.php" title="Edit profile">
+        <?php if ($profileImage !== ''): ?><img class="profile-avatar profile-avatar-image" src="<?= $profileImage ?>" alt=""><?php else: ?><span class="profile-avatar subject-avatar"><?= strtoupper(substr($officerName, 0, 1)) ?></span><?php endif; ?>
         <span><strong><?= $officerName ?></strong><small>Subject Officer</small></span>
-    </div>
+    </a>
 
     <nav class="sidebar-nav" aria-label="Subject Officer navigation">
         <?php foreach ($navigation as $section => $items): ?>

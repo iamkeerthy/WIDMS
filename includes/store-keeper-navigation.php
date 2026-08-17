@@ -8,10 +8,10 @@ return [
     'Inventory' => [
         ['icon' => '📥', 'label' => 'Receive Items', 'page' => 'receive-items'],
         ['icon' => '📦', 'label' => 'Current Stock', 'page' => 'current-stock'],
-        ['icon' => '🚚', 'label' => 'Dispatch Items', 'page' => 'dispatch-items'],
     ],
-    'Procurement' => [
-        ['icon' => '💳', 'label' => 'Payment Details', 'page' => 'payment-details'],
+    'Dispatch' => [
+        ['icon' => '✅', 'label' => 'Approved Requests Ready for Dispatch', 'page' => 'approved-dispatches'],
+        ['icon' => '🚚', 'label' => 'Recently Dispatched', 'page' => 'recent-dispatches'],
     ],
     'Requests' => [
         ['icon' => '📝', 'label' => 'Correction Requests', 'page' => 'correction-requests'],

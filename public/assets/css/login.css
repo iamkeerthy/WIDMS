@@ -115,6 +115,29 @@ body {
 .sign-in-button:hover,
 .sign-in-button:focus { background: var(--primary-dark); }
 
+.signup-prompt {
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+}
+
+.signup-prompt a { color: var(--primary); font-weight: 700; text-decoration: none; }
+.signup-prompt a:hover { text-decoration: underline; }
+
+.signup-page { min-height: 100vh; height: auto; overflow-y: auto; padding: 28px 18px; }
+.signup-card { max-width: 620px; padding-bottom: 28px; }
+.signup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 16px; }
+.signup-grid .full-width { grid-column: 1 / -1; }
+.signup-grid .form-label { display: block; }
+.signup-card .form-control, .signup-card .form-select { width: 100%; }
+.field-help { margin: 5px 2px 0; color: var(--muted); font-size: 12px; }
+
+@media (max-width: 575.98px) {
+    .signup-grid { grid-template-columns: 1fr; }
+    .signup-grid .full-width { grid-column: auto; }
+}
+
 @media (max-width: 575.98px) {
     .login-page { padding: 12px; }
 

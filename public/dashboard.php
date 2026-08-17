@@ -11,6 +11,7 @@ $adminPages = [
     'pending-approvals' => __DIR__ . '/../modules/admin/pending-approvals.php',
     'users' => __DIR__ . '/../modules/admin/users.php',
     'system-config' => __DIR__ . '/../modules/admin/system-config.php',
+    'correction-requests' => __DIR__ . '/../modules/admin/correction-requests.php',
 ];
 
 $socialOfficerPages = [
@@ -20,10 +21,19 @@ $socialOfficerPages = [
 
 $requestedPage = (string) ($_GET['page'] ?? 'dashboard');
 
+$storeKeeperPages = [
+    'dashboard' => __DIR__ . '/../modules/store-keeper/dashboard.php',
+    'receive-items' => __DIR__ . '/../modules/store-keeper/receive-items.php',
+    'current-stock' => __DIR__ . '/../modules/store-keeper/current-stock.php',
+    'correction-requests' => __DIR__ . '/../modules/store-keeper/correction-requests.php',
+    'approved-dispatches' => __DIR__ . '/../modules/store-keeper/approved-dispatches.php',
+    'recent-dispatches' => __DIR__ . '/../modules/store-keeper/recent-dispatches.php',
+];
+
 $dashboards = [
     'admin' => $adminPages[$requestedPage] ?? $adminPages['dashboard'],
     'subject-officer' => __DIR__ . '/../modules/subject-officer/dashboard.php',
-    'store-keeper' => __DIR__ . '/../modules/store-keeper/dashboard.php',
+    'store-keeper' => $storeKeeperPages[$requestedPage] ?? $storeKeeperPages['dashboard'],
     'social-service-officer' => $socialOfficerPages[$requestedPage] ?? $socialOfficerPages['dashboard'],
 ];
 

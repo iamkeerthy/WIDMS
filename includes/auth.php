@@ -44,6 +44,7 @@ function loginUser(array $user): void
     $_SESSION['full_name'] = $user['full_name'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['role'] = $user['role'];
+    $_SESSION['profile_image'] = $user['profile_image'] ?? null;
     unset($_SESSION['csrf_token']);
 }
 

@@ -17,4 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         if (window.innerWidth > 991) setSidebar(false);
     });
+
+    document.querySelectorAll('.alert-success').forEach((notification) => {
+        window.setTimeout(() => {
+            notification.classList.add('notification-hiding');
+            window.setTimeout(() => notification.remove(), 300);
+        }, 3500);
+    });
 });

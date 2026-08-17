@@ -23,3 +23,16 @@ ON DUPLICATE KEY UPDATE
     setting_type = VALUES(setting_type),
     setting_group = VALUES(setting_group),
     description = VALUES(description);
+
+INSERT INTO suppliers (company_name) VALUES
+('ABC Medical Co. Ltd'),
+('Vision Care Co. Ltd'),
+('HealthTech Pvt Ltd')
+ON DUPLICATE KEY UPDATE company_name = VALUES(company_name);
+
+INSERT INTO inventory_items (item_name, category, variety, lifecycle_status) VALUES
+('Wheelchair', 'Mobility Aid', 'Standard', 'given-to-procedure'),
+('Glasses', 'Vision Aid', 'Standard', 'stored'),
+('Hearing Aid', 'Medical Aid', 'Behind-the-ear', 'stored'),
+('Crutches', 'Mobility Aid', 'Adjustable', 'stored')
+ON DUPLICATE KEY UPDATE category = VALUES(category), lifecycle_status = VALUES(lifecycle_status);

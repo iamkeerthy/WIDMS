@@ -10,7 +10,7 @@ $loadError = '';
 
 try {
     $users = database()->query(
-        'SELECT id, full_name, username, role, status, created_at
+        'SELECT id, full_name, username, phone, division, role, status, created_at
          FROM users
          ORDER BY id ASC'
     )->fetchAll();
@@ -76,7 +76,7 @@ $roleLabels = [
                                             <small><?= htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') ?></small>
                                         </td>
                                         <td><span class="role-label <?= $role[1] ?>"><?= htmlspecialchars($role[0], ENT_QUOTES, 'UTF-8') ?></span></td>
-                                        <td>—</td>
+                                        <td><?= htmlspecialchars($user['division'] ?: '—', ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><span class="user-status <?= $user['status'] === 'active' ? 'active' : 'inactive' ?>"><?= ucfirst(htmlspecialchars($user['status'], ENT_QUOTES, 'UTF-8')) ?></span></td>
                                         <td><?= date('d M Y', strtotime($user['created_at'])) ?></td>
                                         <td class="user-actions">
