@@ -6,7 +6,7 @@ $activePage = $activePage ?? 'dashboard';
 $officerName = htmlspecialchars((string) $_SESSION['full_name'], ENT_QUOTES, 'UTF-8');
 $profileImage = !empty($_SESSION['profile_image']) ? htmlspecialchars((string) $_SESSION['profile_image'], ENT_QUOTES, 'UTF-8') : '';
 ?>
-<aside class="sidebar" id="admin-sidebar">
+<aside class="sidebar management-role-sidebar" id="admin-sidebar">
     <div class="sidebar-brand">
         <span class="sidebar-logo">W</span>
         <span><strong>WIDMS</strong></span>
@@ -22,7 +22,7 @@ $profileImage = !empty($_SESSION['profile_image']) ? htmlspecialchars((string) $
         <?php foreach ($navigation as $section => $items): ?>
             <p class="nav-heading"><?= htmlspecialchars($section, ENT_QUOTES, 'UTF-8') ?></p>
             <?php foreach ($items as $item): ?>
-                <a href="<?= $item['page'] === 'dashboard' ? 'dashboard.php' : '#' ?>"
+                <a href="dashboard.php<?= $item['page'] === 'dashboard' ? '' : '?page=' . urlencode($item['page']) ?>"
                    class="nav-link<?= $item['page'] === $activePage ? ' active' : '' ?>">
                     <span class="nav-icon" aria-hidden="true"><?= $item['icon'] ?></span>
                     <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>

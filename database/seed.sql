@@ -30,9 +30,9 @@ INSERT INTO suppliers (company_name) VALUES
 ('HealthTech Pvt Ltd')
 ON DUPLICATE KEY UPDATE company_name = VALUES(company_name);
 
-INSERT INTO inventory_items (item_name, category, variety, lifecycle_status) VALUES
-('Wheelchair', 'Mobility Aid', 'Standard', 'given-to-procedure'),
-('Glasses', 'Vision Aid', 'Standard', 'stored'),
-('Hearing Aid', 'Medical Aid', 'Behind-the-ear', 'stored'),
-('Crutches', 'Mobility Aid', 'Adjustable', 'stored')
-ON DUPLICATE KEY UPDATE category = VALUES(category), lifecycle_status = VALUES(lifecycle_status);
+INSERT INTO inventory_items (item_name, category, variety) VALUES
+('Wheelchair', 'Mobility Aid', 'Standard'),
+('Glasses', 'Vision Aid', 'Standard'),
+('Hearing Aid', 'Medical Aid', 'Behind-the-ear'),
+('Crutches', 'Mobility Aid', 'Adjustable')
+ON DUPLICATE KEY UPDATE category = VALUES(category);

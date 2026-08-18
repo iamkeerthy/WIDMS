@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/permissions.php';
+require_once __DIR__ . '/../includes/activity.php';
 
 requireLogin();
 
@@ -107,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['profile_image'] = $profileImage;
             $user = array_merge($user, ['full_name' => $fullName, 'username' => $email, 'phone' => $phone, 'division' => $parameters['division'], 'profile_image' => $profileImage]);
             $_SESSION['flash_success'] = 'Your profile was updated successfully.';
+            logActivity('Profile', 'Updated profile settings', 'USR-' . $user['id'], 'done');
             unset($_SESSION['csrf_token']);
             header('Location: profile.php');
             exit;

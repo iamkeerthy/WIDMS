@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 requireRole('store-keeper');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/activity.php';
 
 $activePage = $requestedPage === 'receive-items' ? 'receive-items' : 'dashboard';
 $errors = [];
@@ -18,7 +19,7 @@ $values = [
 
 try {
     $suppliers = database()->query("SELECT id, company_name FROM suppliers WHERE status = 'active' ORDER BY company_name")->fetchAll();
-    $inventoryItems = database()->query('SELECT id, item_name, variety, quantity FROM inventory_items ORDER BY item_name, variety')->fetchAll();
+    $inventoryItems = database()->query("SELECT i.id, i.item_name, i.variety, i.quantity, GROUP_CONCAT(sai.supplier_id) supplier_ids FROM inventory_items i LEFT JOIN supplier_authorized_items sai ON sai.item_id=i.id GROUP BY i.id ORDER BY i.item_name, i.variety")->fetchAll();
 } catch (PDOException $exception) {
     error_log($exception->getMessage());
     $errors[] = 'Stock receiving is not installed. Import database/migration_stock_receiving.sql.';
@@ -61,11 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $errors === []) {
             $connection = database();
             $connection->beginTransaction();
 
-            $supplierCheck = $connection->prepare("SELECT id FROM suppliers WHERE id = :id AND status = 'active'");
-            $supplierCheck->execute(['id' => $supplierId]);
+            $supplierCheck = $connection->prepare("SELECT s.id FROM suppliers s JOIN supplier_authorized_items sai ON sai.supplier_id=s.id AND sai.item_id=:item_id WHERE s.id=:supplier_id AND s.status='active'");
+            $supplierCheck->execute(['supplier_id' => $supplierId, 'item_id' => $itemId]);
             $itemCheck = $connection->prepare('SELECT id FROM inventory_items WHERE id = :id FOR UPDATE');
             $itemCheck->execute(['id' => $itemId]);
-            if (!$supplierCheck->fetch() || !$itemCheck->fetch()) throw new RuntimeException('The selected supplier or item is unavailable.');
+            if (!$supplierCheck->fetch() || !$itemCheck->fetch()) throw new RuntimeException('The supplier is inactive or is not authorized for the selected item.');
 
             $receipt = $connection->prepare(
                 'INSERT INTO stock_receipts
@@ -82,9 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $errors === []) {
                 'balance_amount' => number_format($balance, 2, '.', ''), 'received_by' => $_SESSION['user_id'],
             ]);
             $receiptId = (int) $connection->lastInsertId();
-            $stock = $connection->prepare('UPDATE inventory_items SET quantity = quantity + :quantity WHERE id = :id');
+            $stock = $connection->prepare('UPDATE inventory_items i LEFT JOIN item_categories c ON c.name=i.category AND c.status=\'active\' SET i.quantity=i.quantity+:quantity,i.category_id=COALESCE(i.category_id,c.id) WHERE i.id=:id');
             $stock->execute(['quantity' => $quantity, 'id' => $itemId]);
             $connection->commit();
+            logActivity('Inventory', sprintf('Received %d item%s into central stock', $quantity, $quantity === 1 ? '' : 's'), 'BAT-' . str_pad((string)$receiptId,4,'0',STR_PAD_LEFT), 'done');
 
             $_SESSION['flash_success'] = sprintf('Receipt BAT-%04d recorded. %d item%s added to stock immediately.', $receiptId, $quantity, $quantity === 1 ? '' : 's');
             unset($_SESSION['csrf_token']);
@@ -99,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $errors === []) {
 }
 
 if ($suppliers !== []) {
-    $inventoryItems = database()->query('SELECT id, item_name, variety, quantity FROM inventory_items ORDER BY item_name, variety')->fetchAll();
+    $inventoryItems = database()->query("SELECT i.id, i.item_name, i.variety, i.quantity, GROUP_CONCAT(sai.supplier_id) supplier_ids FROM inventory_items i LEFT JOIN supplier_authorized_items sai ON sai.item_id=i.id GROUP BY i.id ORDER BY i.item_name, i.variety")->fetchAll();
     $receipts = database()->query(
         'SELECT r.id, r.quantity, r.total_cost, r.paid_amount, r.balance_amount, r.bill_number, r.received_date,
                 r.payment_status, s.company_name, i.item_name, i.variety
@@ -131,8 +133,8 @@ $statusLabels = ['fully-paid' => 'Fully Paid', 'partially-paid' => 'Partially Pa
             <form method="post" action="dashboard.php?page=receive-items" id="receipt-form" class="receive-form">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <div class="receive-form-grid">
-                    <label>Supplier Company<select name="supplier_id" required><option value="">Select supplier</option><?php foreach ($suppliers as $supplier): ?><option value="<?= (int) $supplier['id'] ?>" <?= (string) $supplier['id'] === $values['supplier_id'] ? 'selected' : '' ?>><?= htmlspecialchars($supplier['company_name'], ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
-                    <label>Item<select name="item_id" id="item_id" required><option value="">Select item and variety</option><?php foreach ($inventoryItems as $item): ?><option value="<?= (int) $item['id'] ?>" <?= (string) $item['id'] === $values['item_id'] ? 'selected' : '' ?>><?= htmlspecialchars($item['item_name'] . ($item['variety'] !== '' ? ' — ' . $item['variety'] : '') . ' (stock: ' . $item['quantity'] . ')', ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
+                    <label>Supplier Company<select name="supplier_id" id="supplier_id" required><option value="">Select supplier</option><?php foreach ($suppliers as $supplier): ?><option value="<?= (int) $supplier['id'] ?>" <?= (string) $supplier['id'] === $values['supplier_id'] ? 'selected' : '' ?>><?= htmlspecialchars($supplier['company_name'], ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
+                    <label>Item<select name="item_id" id="item_id" required><option value="">Select item and variety</option><?php foreach ($inventoryItems as $item): ?><option value="<?= (int) $item['id'] ?>" data-suppliers=",<?= htmlspecialchars((string)$item['supplier_ids'], ENT_QUOTES, 'UTF-8') ?>," <?= (string) $item['id'] === $values['item_id'] ? 'selected' : '' ?>><?= htmlspecialchars($item['item_name'] . ($item['variety'] !== '' ? ' — ' . $item['variety'] : '') . ' (stock: ' . $item['quantity'] . ')', ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
                     <label>Quantity<input type="number" min="1" name="quantity" id="quantity" value="<?= htmlspecialchars($values['quantity'], ENT_QUOTES, 'UTF-8') ?>" required></label>
                     <label>Unit Cost (Rs)<input type="number" min="0" step="0.01" name="unit_cost" id="unit_cost" value="<?= htmlspecialchars($values['unit_cost'], ENT_QUOTES, 'UTF-8') ?>" required></label>
                     <label>Total Cost (Rs)<input type="text" id="total_cost" value="0.00" readonly></label>

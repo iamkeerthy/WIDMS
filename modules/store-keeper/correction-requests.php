@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 requireRole('store-keeper');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/activity.php';
 
 $activePage = 'correction-requests';
 $errors = [];
@@ -33,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $statement->execute($values + ['submitted_by' => $_SESSION['user_id']]);
             $requestId = (int) database()->lastInsertId();
+            logActivity('Corrections', 'Submitted an inventory correction request', 'CR-' . str_pad((string)$requestId,3,'0',STR_PAD_LEFT), 'pending');
             $_SESSION['flash_success'] = sprintf('Correction request CR-%03d sent to the administrator.', $requestId);
             unset($_SESSION['csrf_token']);
             header('Location: dashboard.php?page=correction-requests');

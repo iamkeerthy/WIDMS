@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/activity.php';
 
 if (isLoggedIn()) {
     header('Location: dashboard.php');
@@ -36,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 loginUser($user);
                 $update = database()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = :id');
                 $update->execute(['id' => $user['id']]);
+                logActivity('Authentication', 'Signed in to WIDMS', null, 'done');
                 header('Location: dashboard.php');
                 exit;
             }

@@ -1,129 +1,15 @@
 <?php
 declare(strict_types=1);
-
 requireRole('social-service-officer');
-$activePage = 'aid-requests';
-
-$submittedRequests = [
-    ['AR-041', 'Nimal Kumar', '901234567V', '52', 'Galle', 'Galle Four Gravets', 'Wheelchair (Standard)', 'Today', 'Pending', '—'],
-    ['AR-038', 'Kumari Perera', '888765432V', '36', 'Galle', 'Akmeemana', 'Hearing Aid', '1 week ago', 'Rejected', 'Insufficient official approvals — GN, SSO and DS required'],
-    ['AR-035', 'Anura Wijesinghe', '720345678V', '54', 'Hambantota', 'Hambantota', 'Tricycle (Standard)', '2 weeks ago', 'Approved', '—'],
-];
+require_once __DIR__.'/../../config/database.php';
+require_once __DIR__.'/../../includes/activity.php';
+require_once __DIR__.'/../../includes/eligibility.php';
+$activePage='aid-requests';$errors=[];$success=(string)($_SESSION['flash_success']??'');unset($_SESSION['flash_success']);$db=database();$userId=(int)$_SESSION['user_id'];
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ $beneficiaryId=filter_input(INPUT_POST,'beneficiary_id',FILTER_VALIDATE_INT);$itemId=filter_input(INPUT_POST,'item_id',FILTER_VALIDATE_INT);$quantity=filter_input(INPUT_POST,'quantity',FILTER_VALIDATE_INT);$disability=trim((string)($_POST['disability_notes']??''));$notes=trim((string)($_POST['notes']??''));
+ if(!verifyCsrfToken((string)($_POST['csrf_token']??'')))$errors[]='Your session expired.';if(!$beneficiaryId||!$itemId||!$quantity||$quantity<1)$errors[]='Select a beneficiary, item, and valid quantity.';if(mb_strlen($disability)<2||mb_strlen($disability)>500)$errors[]='Enter valid disability details.';if(mb_strlen($notes)>1000)$errors[]='Notes cannot exceed 1000 characters.';
+ if(!$errors){try{$scope=$db->prepare("SELECT id FROM beneficiaries WHERE id=:id AND ds_division_id=(SELECT ds_division_id FROM users WHERE id=:user) AND status='active'");$scope->execute(['id'=>$beneficiaryId,'user'=>$userId]);if(!$scope->fetchColumn())throw new RuntimeException('Beneficiary is outside your assigned division or is inactive.');$eligibility=beneficiaryEligibility($db,(int)$beneficiaryId,(int)$itemId);if(!$eligibility['item']||$eligibility['item']['distribution_type']!=='request-based')throw new RuntimeException('This item is for direct distribution and does not require an aid request.');if(!$eligibility['eligible'])throw new RuntimeException($eligibility['reason']);$pending=$db->prepare("SELECT COUNT(*) FROM aid_requests ar JOIN inventory_items i ON i.id=ar.item_id WHERE ar.beneficiary_id=:beneficiary AND i.category_id=:category AND ar.status IN ('pending','approved')");$pending->execute(['beneficiary'=>$beneficiaryId,'category'=>$eligibility['item']['category_id']]);if((int)$pending->fetchColumn()>0)throw new RuntimeException('An active request already exists for this beneficiary and aid category.');$stmt=$db->prepare('INSERT INTO aid_requests(beneficiary_id,item_id,quantity,disability_notes,notes,medical_officer_approved,grama_niladhari_approved,social_services_approved,divisional_secretary_approved,submitted_by) VALUES(:beneficiary,:item,:quantity,:disability,:notes,:medical,:gn,:social,:secretary,:user)');$stmt->execute(['beneficiary'=>$beneficiaryId,'item'=>$itemId,'quantity'=>$quantity,'disability'=>$disability,'notes'=>$notes?:null,'medical'=>isset($_POST['medical_officer'])?1:0,'gn'=>isset($_POST['grama_niladhari'])?1:0,'social'=>isset($_POST['social_services'])?1:0,'secretary'=>isset($_POST['divisional_secretary'])?1:0,'user'=>$userId]);$id=(int)$db->lastInsertId();logActivity('Aid Requests','Submitted aid distribution request','AR-'.str_pad((string)$id,4,'0',STR_PAD_LEFT),'pending');$_SESSION['flash_success']='Aid request submitted for Admin approval.';unset($_SESSION['csrf_token']);header('Location: dashboard.php?page=aid-requests');exit;}catch(Throwable $e){error_log($e->getMessage());$errors[]=$e instanceof RuntimeException?$e->getMessage():'Unable to submit aid request.';}}
+}
+try{$beneficiaries=$db->prepare("SELECT b.id,b.full_name,b.nic,ds.name division_name FROM beneficiaries b JOIN ds_divisions ds ON ds.id=b.ds_division_id WHERE b.status='active' AND b.ds_division_id=(SELECT ds_division_id FROM users WHERE id=:user) ORDER BY b.full_name");$beneficiaries->execute(['user'=>$userId]);$beneficiaries=$beneficiaries->fetchAll();$items=$db->query("SELECT i.id,i.item_name,i.variety FROM inventory_items i JOIN item_categories c ON c.id=i.category_id WHERE c.status='active' AND c.distribution_type='request-based' ORDER BY i.item_name,i.variety")->fetchAll();$requests=$db->prepare('SELECT ar.*,b.full_name,b.nic,i.item_name,i.variety FROM aid_requests ar JOIN beneficiaries b ON b.id=ar.beneficiary_id JOIN inventory_items i ON i.id=ar.item_id WHERE ar.submitted_by=:user ORDER BY ar.id DESC');$requests->execute(['user'=>$userId]);$requests=$requests->fetchAll();}catch(PDOException $e){error_log($e->getMessage());$beneficiaries=$items=$requests=[];$errors[]='Aid request workflow is unavailable.';}
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My Aid Requests | WIDMS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/css/admin-dashboard.css" rel="stylesheet">
-</head>
-<body>
-    <?php require __DIR__ . '/../../includes/social-service-officer-sidebar.php'; ?>
-
-    <div class="admin-shell">
-        <header class="topbar">
-            <div class="d-flex align-items-center gap-3">
-                <button type="button" class="menu-button" id="menu-button" aria-label="Open navigation">☰</button>
-                <h1>My Requests</h1>
-            </div>
-            <div class="topbar-actions">
-                <label class="search-box"><span aria-hidden="true">🔍</span><input type="search" placeholder="Search anything..." aria-label="Search"></label>
-                <button class="notification-button" type="button" aria-label="Notifications">🔔</button>
-            </div>
-        </header>
-
-        <main class="dashboard-content aid-requests-page">
-            <section class="aid-form-card">
-                <div class="aid-card-header">
-                    <h2>📋 Submit New Aid Distribution Request</h2>
-                    <small>All fields marked * are required</small>
-                </div>
-
-                <form class="aid-request-form">
-                    <fieldset>
-                        <legend>📍 Location Details</legend>
-                        <div class="aid-form-grid three-columns">
-                            <label>District *<select required><option value="">Select District</option><option>Galle</option><option>Matara</option><option>Hambantota</option></select></label>
-                            <label>D.S. Division *<select required><option value="">Select DS Division</option></select></label>
-                            <label>G.N. Division *<select required><option value="">Select GN Division</option></select></label>
-                        </div>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend>👤 Beneficiary Details</legend>
-                        <div class="aid-form-grid two-columns">
-                            <label>Full Name *<input type="text" placeholder="As per NIC / Birth Certificate" required></label>
-                            <label>NIC Number *<input type="text" placeholder="e.g. 901234567V or 199012345678" required></label>
-                        </div>
-                        <div class="aid-form-grid three-columns">
-                            <label>Date of Birth *<input type="date" required></label>
-                            <label>Gender *<select required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></label>
-                            <label>Phone Number<input type="tel" placeholder="e.g. 077-1234567"></label>
-                        </div>
-                        <label class="full-field">Address *<textarea rows="2" placeholder="Full residential address..." required></textarea></label>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend>♿ Disability &amp; Aid Requested</legend>
-                        <div class="aid-form-grid two-columns">
-                            <label>Nature of Disability *<select required><option value="">Select Disability Type</option><option>Mobility Impairment</option><option>Visual Impairment</option><option>Hearing Impairment</option><option>Other</option></select></label>
-                            <label>Aid Requested *<select required><option value="">Select Aid Type</option><option>Wheelchair</option><option>Tricycle</option><option>Hearing Aid</option><option>Spectacles</option></select></label>
-                        </div>
-                        <label class="full-field">Additional Notes<textarea rows="3" placeholder="Any additional information..."></textarea></label>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend>✅ Official Approvals</legend>
-                        <p class="approval-help">Check each official who has approved this application.</p>
-                        <div class="official-grid">
-                            <label><input type="checkbox"> 🩺 Government Medical Officer</label>
-                            <label><input type="checkbox"> 🧑‍💼 Grama Niladhari</label>
-                            <label><input type="checkbox"> 🏛️ Social Services Officer</label>
-                            <label><input type="checkbox"> 📋 Divisional Secretary</label>
-                        </div>
-                    </fieldset>
-
-                    <div class="aid-form-actions">
-                        <button type="button" class="submit-aid-button">📤 Submit Aid Request</button>
-                        <button type="button" class="draft-aid-button">Save as Draft</button>
-                        <small>Will be sent to Admin for final approval</small>
-                    </div>
-                </form>
-            </section>
-
-            <section class="submitted-requests-card">
-                <div class="submitted-header">
-                    <h2>My Submitted Requests</h2>
-                    <div><input type="search" placeholder="Search name or NIC..."><select><option>All Status</option><option>Pending</option><option>Approved</option><option>Rejected</option></select></div>
-                </div>
-                <div class="submitted-table-wrap">
-                    <table class="submitted-table">
-                        <thead><tr><th>ID</th><th>Beneficiary</th><th>NIC</th><th>Age</th><th>District</th><th>DS Division</th><th>Aid Requested</th><th>Approvals</th><th>Submitted</th><th>Status</th><th>Notes</th></tr></thead>
-                        <tbody>
-                            <?php foreach ($submittedRequests as $request): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($request[0], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><strong><?= htmlspecialchars($request[1], ENT_QUOTES, 'UTF-8') ?></strong></td>
-                                    <td><?= htmlspecialchars($request[2], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($request[3], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($request[4], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($request[5], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($request[6], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="approval-icons">🩺 🧑‍💼 🏛️ 📋</td>
-                                    <td><?= htmlspecialchars($request[7], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><span class="status <?= strtolower($request[8]) ?>"><?= htmlspecialchars($request[8], ENT_QUOTES, 'UTF-8') ?></span></td>
-                                    <td><?= htmlspecialchars($request[9], ENT_QUOTES, 'UTF-8') ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <script src="assets/js/admin-dashboard.js"></script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Aid Requests | WIDMS</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="assets/css/admin-dashboard.css" rel="stylesheet"></head><body><?php require __DIR__.'/../../includes/social-service-officer-sidebar.php';?><div class="admin-shell"><header class="topbar"><div class="d-flex align-items-center gap-3"><button class="menu-button" id="menu-button">&#9776;</button><h1>My Aid Requests</h1></div></header><main class="dashboard-content aid-requests-page"><?php if($success):?><div class="alert alert-success"><?=htmlspecialchars($success,ENT_QUOTES,'UTF-8')?></div><?php endif;?><?php if($errors):?><div class="alert alert-danger"><?=htmlspecialchars(implode(' ',$errors),ENT_QUOTES,'UTF-8')?></div><?php endif;?><section class="aid-form-card"><div class="aid-card-header"><h2>Submit New Aid Distribution Request</h2><small>Request-based items require Admin approval</small></div><form method="post" class="aid-request-form"><input type="hidden" name="csrf_token" value="<?=htmlspecialchars(csrfToken(),ENT_QUOTES,'UTF-8')?>"><fieldset><legend>Beneficiary and Aid</legend><div class="aid-form-grid two-columns"><label>Registered Beneficiary *<select name="beneficiary_id" required><option value="">Select beneficiary</option><?php foreach($beneficiaries as $b):?><option value="<?=(int)$b['id']?>"><?=htmlspecialchars($b['full_name'].' — '.$b['nic'].' — '.$b['division_name'],ENT_QUOTES,'UTF-8')?></option><?php endforeach;?></select></label><label>Aid Requested *<select name="item_id" required><option value="">Select request-based item</option><?php foreach($items as $i):?><option value="<?=(int)$i['id']?>"><?=htmlspecialchars($i['item_name'].($i['variety']?' — '.$i['variety']:''),ENT_QUOTES,'UTF-8')?></option><?php endforeach;?></select></label></div><div class="aid-form-grid two-columns"><label>Nature of Disability *<input name="disability_notes" required maxlength="500"></label><label>Quantity *<input type="number" name="quantity" value="1" min="1" required></label></div><label class="full-field">Additional Notes<textarea name="notes" rows="2" maxlength="1000"></textarea></label></fieldset><fieldset><legend>Official Approvals</legend><div class="official-grid"><label><input type="checkbox" name="medical_officer"> Government Medical Officer</label><label><input type="checkbox" name="grama_niladhari"> Grama Niladhari</label><label><input type="checkbox" name="social_services"> Social Services Officer</label><label><input type="checkbox" name="divisional_secretary"> Divisional Secretary</label></div></fieldset><div class="aid-form-actions"><button class="submit-aid-button">Submit Aid Request</button><small>Admin makes the final approval decision</small></div></form></section><section class="submitted-requests-card"><div class="submitted-header"><h2>My Submitted Requests</h2></div><div class="submitted-table-wrap"><table class="submitted-table"><thead><tr><th>ID</th><th>Beneficiary</th><th>NIC</th><th>Aid Requested</th><th>Qty</th><th>Approvals</th><th>Submitted</th><th>Status</th><th>Admin Notes</th></tr></thead><tbody><?php if(!$requests):?><tr><td colspan="9" class="aid-requests-empty">No aid requests submitted yet.</td></tr><?php else:foreach($requests as $r):?><tr><td>AR-<?=str_pad((string)$r['id'],4,'0',STR_PAD_LEFT)?></td><td><strong><?=htmlspecialchars($r['full_name'],ENT_QUOTES,'UTF-8')?></strong></td><td><?=htmlspecialchars($r['nic'],ENT_QUOTES,'UTF-8')?></td><td><?=htmlspecialchars($r['item_name'].($r['variety']?' — '.$r['variety']:''),ENT_QUOTES,'UTF-8')?></td><td><?=(int)$r['quantity']?></td><td><?=array_sum([(int)$r['medical_officer_approved'],(int)$r['grama_niladhari_approved'],(int)$r['social_services_approved'],(int)$r['divisional_secretary_approved']])?> / 4</td><td><?=date('d M Y',strtotime($r['created_at']))?></td><td><?=ucfirst($r['status'])?></td><td><?=htmlspecialchars($r['rejection_reason']?:'—',ENT_QUOTES,'UTF-8')?></td></tr><?php endforeach;endif;?></tbody></table></div></section></main></div><script src="assets/js/admin-dashboard.js"></script></body></html>

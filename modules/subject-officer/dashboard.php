@@ -2,15 +2,13 @@
 declare(strict_types=1);
 
 requireRole('subject-officer');
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/activity.php';
 $activePage = 'dashboard';
 
-$activities = [
-    ['10:42 AM', 'Aid request AR-041 submitted — Nimal Kumara, Galle', 'Me', 'Pending'],
-    ['09:30 AM', 'Aid request AR-039 approved by Admin — Tricycle (Standard)', 'Admin', 'Approved'],
-    ['09:15 AM', 'Return processed — Wheelchair returned by Anura W. (Good)', 'Me', 'Reused'],
-    ['08:45 AM', 'Stock release SR-040 approved — 5 Tricycles dispatched', 'Admin', 'Approved'],
-    ['08:00 AM', 'Beneficiary added — Sanduni Wijesinghe, Galle Four Gravets', 'Me', 'Done'],
-];
+$activities = recentActivities((int) $_SESSION['user_id'], 8);
+$metrics=['submitted'=>0,'beneficiaries'=>0,'releases'=>0,'returns'=>0,'approved'=>0,'pending'=>0,'rejected'=>0];
+try{$db=database();$user=(int)$_SESSION['user_id'];$stmt=$db->prepare('SELECT COUNT(*) FROM goods_requests WHERE requested_by=:user');$stmt->execute(['user'=>$user]);$metrics['submitted']=(int)$stmt->fetchColumn();$stmt=$db->prepare("SELECT COUNT(*) FROM beneficiaries b WHERE b.status='active' AND (b.ds_division_id=(SELECT ds_division_id FROM users WHERE id=:user) OR (SELECT ds_division_id FROM users WHERE id=:user2) IS NULL)");$stmt->execute(['user'=>$user,'user2'=>$user]);$metrics['beneficiaries']=(int)$stmt->fetchColumn();$stmt=$db->prepare("SELECT COUNT(*) FROM goods_requests WHERE requested_by=:user AND status='approved-awaiting-dispatch'");$stmt->execute(['user'=>$user]);$metrics['releases']=(int)$stmt->fetchColumn();$stmt=$db->prepare("SELECT COUNT(*) FROM item_returns r JOIN distributions d ON d.id=r.distribution_id JOIN beneficiaries b ON b.id=d.beneficiary_id WHERE MONTH(r.processed_at)=MONTH(CURDATE()) AND YEAR(r.processed_at)=YEAR(CURDATE()) AND (b.ds_division_id=(SELECT ds_division_id FROM users WHERE id=:user) OR (SELECT ds_division_id FROM users WHERE id=:user2) IS NULL)");$stmt->execute(['user'=>$user,'user2'=>$user]);$metrics['returns']=(int)$stmt->fetchColumn();foreach(['approved-awaiting-dispatch'=>'approved','pending-admin-approval'=>'pending','rejected'=>'rejected'] as $status=>$key){$stmt=$db->prepare('SELECT COUNT(*) FROM goods_requests WHERE requested_by=:user AND status=:status');$stmt->execute(['user'=>$user,'status'=>$status]);$metrics[$key]=(int)$stmt->fetchColumn();}}catch(PDOException $e){error_log($e->getMessage());}
 ?>
 <!doctype html>
 <html lang="en">
@@ -36,12 +34,12 @@ $activities = [
             </div>
         </header>
 
-        <main class="dashboard-content">
+        <main class="dashboard-content admin-dashboard-page">
             <section class="stats-grid" aria-label="Subject Officer statistics">
-                <article class="stat-card"><span class="stat-icon">📋</span><p>Submitted Requests</p><strong>12</strong><small>1 pending · 9 approved</small></article>
-                <article class="stat-card"><span class="stat-icon">🗃️</span><p>Beneficiaries in Division</p><strong>142</strong><small>Galle Division</small></article>
-                <article class="stat-card"><span class="stat-icon">📤</span><p>Pending Stock Releases</p><strong>1</strong><small class="negative">Awaiting Admin approval</small></article>
-                <article class="stat-card"><span class="stat-icon">🔄</span><p>Returns This Month</p><strong>4</strong><small class="positive">3 marked reusable</small></article>
+                <article class="stat-card"><span class="stat-icon">📋</span><p>Submitted Requests</p><strong><?=$metrics['submitted']?></strong><small>Goods requests submitted</small></article>
+                <article class="stat-card"><span class="stat-icon">🗃️</span><p>Beneficiaries in Division</p><strong><?=$metrics['beneficiaries']?></strong><small>Active beneficiary records</small></article>
+                <article class="stat-card"><span class="stat-icon">📤</span><p>Pending Stock Releases</p><strong><?=$metrics['releases']?></strong><small>Approved, awaiting dispatch</small></article>
+                <article class="stat-card"><span class="stat-icon">🔄</span><p>Returns This Month</p><strong><?=$metrics['returns']?></strong><small>Division return records</small></article>
             </section>
 
             <section class="dashboard-grid">
@@ -51,35 +49,34 @@ $activities = [
                         <table class="activity-table">
                             <thead><tr><th>Time</th><th>Action</th><th>By</th><th>Status</th></tr></thead>
                             <tbody>
-                                <?php foreach ($activities as $activity): ?>
+                                <?php if ($activities === []): ?>
+                                    <tr><td colspan="4" class="text-center text-secondary py-4">No recent activity.</td></tr>
+                                <?php else: foreach ($activities as $activity): ?>
                                     <tr>
-                                        <td><?= htmlspecialchars($activity[0], ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td><?= htmlspecialchars($activity[1], ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td><?= htmlspecialchars($activity[2], ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td><span class="status <?= strtolower($activity[3]) ?>"><?= htmlspecialchars($activity[3], ENT_QUOTES, 'UTF-8') ?></span></td>
+                                        <td><?= date('d M, H:i', strtotime($activity['created_at'])) ?></td>
+                                        <td><?= htmlspecialchars($activity['action'], ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><?= htmlspecialchars($activity['actor_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><span class="status <?= htmlspecialchars(strtolower($activity['status']), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(ucfirst($activity['status']), ENT_QUOTES, 'UTF-8') ?></span></td>
                                     </tr>
-                                <?php endforeach; ?>
+                                <?php endforeach; endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </article>
 
                 <article class="panel division-panel">
-                    <div class="panel-header"><h2>📊 My Division Summary — Galle</h2></div>
+                    <div class="panel-header"><h2>📊 My Division Summary</h2></div>
                     <div class="quota-summary">
                         <h3>My Pool Quota Status</h3>
-                        <div class="quota-row"><div><b>Wheelchair — Standard</b><span>6 remaining · 14/20</span></div><div class="quota-track"><i style="width:70%"></i></div></div>
-                        <div class="quota-row danger"><div><b>Wheelchair — Pediatric</b><span>0 remaining · 8/8</span></div><div class="quota-track"><i style="width:100%"></i></div></div>
-                        <div class="quota-row"><div><b>Tricycle — Standard</b><span>6 remaining · 9/15</span></div><div class="quota-track"><i style="width:60%"></i></div></div>
-                        <div class="quota-row"><div><b>Spectacles</b><span>14 remaining · 10/24</span></div><div class="quota-track"><i style="width:42%"></i></div></div>
+                        <p class="dashboard-empty-state">No pool quota information available.</p>
                     </div>
                     <div class="request-pipeline">
                         <h3>My Request Pipeline</h3>
                         <dl>
-                            <div><dt>Total Submitted</dt><dd>12</dd></div>
-                            <div><dt>Approved</dt><dd class="green">9</dd></div>
-                            <div><dt>Pending</dt><dd class="orange">1</dd></div>
-                            <div><dt>Rejected</dt><dd class="red">2</dd></div>
+                            <div><dt>Total Submitted</dt><dd><?=$metrics['submitted']?></dd></div>
+                            <div><dt>Approved</dt><dd><?=$metrics['approved']?></dd></div>
+                            <div><dt>Pending</dt><dd><?=$metrics['pending']?></dd></div>
+                            <div><dt>Rejected</dt><dd><?=$metrics['rejected']?></dd></div>
                         </dl>
                     </div>
                 </article>

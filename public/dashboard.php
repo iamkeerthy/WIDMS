@@ -12,11 +12,49 @@ $adminPages = [
     'users' => __DIR__ . '/../modules/admin/users.php',
     'system-config' => __DIR__ . '/../modules/admin/system-config.php',
     'correction-requests' => __DIR__ . '/../modules/admin/correction-requests.php',
+    'divisions' => __DIR__ . '/../modules/admin/divisions.php',
+    'goods-requests' => __DIR__ . '/../modules/admin/goods-requests.php',
+    'vision-camp-requests' => __DIR__ . '/../modules/admin/vision-camp-requests.php',
+    'contact-lens-orders' => __DIR__ . '/../modules/admin/contact-lens-orders.php',
+    'item-requests' => __DIR__ . '/../modules/admin/item-requests.php',
+    'beneficiaries' => __DIR__ . '/../modules/admin/beneficiaries.php',
+    'central-stock' => __DIR__ . '/../modules/admin/central-stock.php',
+    'suppliers' => __DIR__ . '/../modules/admin/suppliers.php',
+    'payments' => __DIR__ . '/../modules/admin/payments.php',
+    'officer-pools' => __DIR__ . '/../modules/admin/officer-pools.php',
+    'reports' => __DIR__ . '/../modules/admin/reports.php',
+    'audit-log' => __DIR__ . '/../modules/admin/audit-log.php',
 ];
 
 $socialOfficerPages = [
     'dashboard' => __DIR__ . '/../modules/social-service-officer/dashboard.php',
+    'pool-quota' => __DIR__ . '/../modules/social-service-officer/pool-quota.php',
     'aid-requests' => __DIR__ . '/../modules/social-service-officer/aid-requests.php',
+    'distribute-aid' => __DIR__ . '/../modules/social-service-officer/distribute-aid.php',
+    'pending-handover' => __DIR__ . '/../modules/social-service-officer/pending-handover.php',
+    'request-status-report' => __DIR__ . '/../modules/social-service-officer/request-status-report.php',
+    'beneficiaries' => __DIR__ . '/../modules/social-service-officer/beneficiaries.php',
+    'process-return' => __DIR__ . '/../modules/social-service-officer/process-return.php',
+];
+
+$subjectOfficerPages = [
+    'dashboard' => __DIR__ . '/../modules/subject-officer/dashboard.php',
+    'request-goods' => __DIR__ . '/../modules/subject-officer/request-goods.php',
+    'vision-camp' => __DIR__ . '/../modules/subject-officer/vision-camp.php',
+    'contact-lens-orders' => __DIR__ . '/../modules/subject-officer/contact-lens-orders.php',
+    'aid-distribution' => __DIR__ . '/../modules/subject-officer/workspace.php',
+    'beneficiaries' => __DIR__ . '/../modules/subject-officer/beneficiaries.php',
+    'distribute-items' => __DIR__ . '/../modules/subject-officer/distribute-items.php',
+    'returns' => __DIR__ . '/../modules/subject-officer/workspace.php',
+    'aid-requests' => __DIR__ . '/../modules/subject-officer/workspace.php',
+    'correction-approval' => __DIR__ . '/../modules/admin/correction-requests.php',
+    'central-stock' => __DIR__ . '/../modules/subject-officer/workspace.php',
+    'suppliers' => __DIR__ . '/../modules/subject-officer/suppliers.php',
+    'eligibility-rules' => __DIR__ . '/../modules/subject-officer/eligibility-rules.php',
+    'item-categories' => __DIR__ . '/../modules/subject-officer/item-categories.php',
+    'officer-pools' => __DIR__ . '/../modules/subject-officer/workspace.php',
+    'reports' => __DIR__ . '/../modules/subject-officer/workspace.php',
+    'audit-log' => __DIR__ . '/../modules/subject-officer/workspace.php',
 ];
 
 $requestedPage = (string) ($_GET['page'] ?? 'dashboard');
@@ -32,7 +70,7 @@ $storeKeeperPages = [
 
 $dashboards = [
     'admin' => $adminPages[$requestedPage] ?? $adminPages['dashboard'],
-    'subject-officer' => __DIR__ . '/../modules/subject-officer/dashboard.php',
+    'subject-officer' => $subjectOfficerPages[$requestedPage] ?? $subjectOfficerPages['dashboard'],
     'store-keeper' => $storeKeeperPages[$requestedPage] ?? $storeKeeperPages['dashboard'],
     'social-service-officer' => $socialOfficerPages[$requestedPage] ?? $socialOfficerPages['dashboard'],
 ];

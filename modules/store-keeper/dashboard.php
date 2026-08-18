@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 requireRole('store-keeper');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/activity.php';
 
 $activePage = 'dashboard';
 $loadError = '';
@@ -37,6 +38,9 @@ try {
     )->fetch();
     $outstandingBalance = (float) $payment['outstanding_balance'];
     $outstandingSuppliers = (int) $payment['supplier_count'];
+
+    $pendingDispatches = database()->query("SELECT g.id,g.quantity,i.item_name,ds.name division_name FROM goods_requests g JOIN inventory_items i ON i.id=g.item_id JOIN ds_divisions ds ON ds.id=g.destination_ds_division_id WHERE g.status='approved-awaiting-dispatch' ORDER BY g.approved_at LIMIT 6")->fetchAll();
+    $itemsToDispatch = count($pendingDispatches);
 
     $receiptStatement = database()->prepare(
         'SELECT r.id, r.quantity, r.created_at, s.company_name, i.item_name, i.variety
@@ -79,6 +83,16 @@ try {
 } catch (PDOException $exception) {
     error_log($exception->getMessage());
     $loadError = 'Unable to load dashboard information. Confirm that all database migrations are installed.';
+}
+
+$loggedActivities = recentActivities((int) $_SESSION['user_id'], 8);
+if ($loggedActivities !== []) {
+    $recentActivities = array_map(static fn(array $activity): array => [
+        'created_at' => $activity['created_at'],
+        'action' => $activity['action'],
+        'by' => $activity['actor_name'],
+        'status' => ucfirst($activity['status']),
+    ], $loggedActivities);
 }
 ?>
 <!doctype html>
@@ -125,7 +139,7 @@ try {
                     <?php if ($lowStockItems === []): ?><p class="dashboard-empty-state">No low-stock items.</p>
                     <?php else: ?><ul class="low-stock-list"><?php foreach ($lowStockItems as $stockItem): ?><li><span><b><?= htmlspecialchars($stockItem['item_name'], ENT_QUOTES, 'UTF-8') ?></b><?= $stockItem['variety'] !== '' ? ' — ' . htmlspecialchars($stockItem['variety'], ENT_QUOTES, 'UTF-8') : '' ?><small>Only <?= (int) $stockItem['quantity'] ?> remaining · minimum threshold: <?= $lowStockThreshold ?></small></span><em>Low</em></li><?php endforeach; ?></ul><?php endif; ?>
                     <h3 class="dispatch-heading">Pending Dispatches</h3>
-                    <?php if ($pendingDispatches === []): ?><p class="dashboard-empty-state">No approved requests are waiting for dispatch.</p><?php endif; ?>
+                    <?php if ($pendingDispatches === []): ?><p class="dashboard-empty-state">No approved requests are waiting for dispatch.</p><?php else:?><ul class="low-stock-list"><?php foreach($pendingDispatches as $request):?><li><span><b>GR-<?=str_pad((string)$request['id'],4,'0',STR_PAD_LEFT)?> · <?=htmlspecialchars($request['item_name'],ENT_QUOTES,'UTF-8')?></b><small><?=htmlspecialchars($request['division_name'],ENT_QUOTES,'UTF-8')?> · Qty <?=(int)$request['quantity']?></small></span><em>Ready</em></li><?php endforeach;?></ul><?php endif; ?>
                 </div>
             </article>
         </section>

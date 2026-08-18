@@ -68,7 +68,9 @@ $roleLabels = [
                                 <tr><th>Name</th><th>Role</th><th>Division</th><th>Status</th><th>Created</th><th>Actions</th></tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($users as $user): ?>
+                                <?php if ($users === []): ?>
+                                    <tr><td colspan="6" class="text-center text-secondary py-4">No users available.</td></tr>
+                                <?php else: foreach ($users as $user): ?>
                                     <?php $role = $roleLabels[$user['role']] ?? [ucwords(str_replace('-', ' ', $user['role'])), 'blue']; ?>
                                     <tr>
                                         <td>
@@ -84,7 +86,7 @@ $roleLabels = [
                                             <button type="button" class="suspend-user-button" <?= (int) $user['id'] === (int) $_SESSION['user_id'] ? 'disabled title="You cannot suspend your own account"' : '' ?>>Suspend</button>
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
+                                <?php endforeach; endif; ?>
                             </tbody>
                         </table>
                     </div>

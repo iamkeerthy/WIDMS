@@ -6,7 +6,7 @@ $activePage = $activePage ?? 'dashboard';
 $adminName = htmlspecialchars((string) $_SESSION['full_name'], ENT_QUOTES, 'UTF-8');
 $profileImage = !empty($_SESSION['profile_image']) ? htmlspecialchars((string) $_SESSION['profile_image'], ENT_QUOTES, 'UTF-8') : '';
 ?>
-<aside class="sidebar" id="admin-sidebar">
+<aside class="sidebar admin-role-sidebar management-role-sidebar" id="admin-sidebar">
     <div class="sidebar-brand">
         <span class="sidebar-logo">W</span>
         <span><strong>WIDMS</strong></span>

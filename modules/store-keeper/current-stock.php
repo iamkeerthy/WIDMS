@@ -18,13 +18,13 @@ try {
     }
 
     $stockItems = database()->query(
-        "SELECT i.id, i.item_name, i.category, i.variety, i.quantity, i.lifecycle_status,
+        "SELECT i.id, i.item_name, i.category, i.variety, i.quantity,
                 COUNT(r.id) AS receipt_count,
                 COALESCE(SUM(r.paid_amount), 0) AS total_paid,
                 COALESCE(SUM(r.balance_amount), 0) AS total_balance
          FROM inventory_items i
          LEFT JOIN stock_receipts r ON r.item_id = i.id
-         GROUP BY i.id, i.item_name, i.category, i.variety, i.quantity, i.lifecycle_status
+         GROUP BY i.id, i.item_name, i.category, i.variety, i.quantity
          ORDER BY i.item_name, i.variety"
     )->fetchAll();
 } catch (PDOException $exception) {
@@ -46,7 +46,6 @@ $paymentLabels = [
     'unpaid' => 'Outstanding — Not Yet Paid',
     'no-receipts' => 'No Receipts Yet',
 ];
-$lifecycleLabels = ['stored' => 'Stored', 'given-to-procedure' => 'Given to Procedure'];
 ?>
 <!doctype html>
 <html lang="en">
@@ -65,16 +64,15 @@ $lifecycleLabels = ['stored' => 'Stored', 'given-to-procedure' => 'Given to Proc
         <section class="current-stock-card">
             <div class="current-stock-header"><h2>Central Stock Inventory</h2></div>
             <div class="current-stock-table-wrap"><table class="current-stock-table">
-                <thead><tr><th>Item</th><th>Category</th><th>Variety</th><th>In Stock</th><th>Lifecycle Status</th><th>Payment Status</th><th>Alert</th></tr></thead>
+                <thead><tr><th>Item</th><th>Category</th><th>Variety</th><th>In Stock</th><th>Payment Status</th><th>Alert</th></tr></thead>
                 <tbody>
-                <?php if ($stockItems === []): ?><tr><td colspan="7" class="empty-table">No inventory items found.</td></tr>
+                <?php if ($stockItems === []): ?><tr><td colspan="6" class="empty-table">No inventory items found.</td></tr>
                 <?php else: foreach ($stockItems as $item): $paymentStatus = inventoryPaymentStatus($item); $isLow = (int) $item['quantity'] <= $lowStockThreshold; ?>
                     <tr>
                         <td><strong><?= htmlspecialchars($item['item_name'], ENT_QUOTES, 'UTF-8') ?></strong></td>
                         <td><?= htmlspecialchars($item['category'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($item['variety'] ?: 'Standard', ENT_QUOTES, 'UTF-8') ?></td>
                         <td><strong><?= (int) $item['quantity'] ?></strong></td>
-                        <td><span class="lifecycle-badge <?= htmlspecialchars($item['lifecycle_status'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lifecycleLabels[$item['lifecycle_status']] ?? ucfirst($item['lifecycle_status']), ENT_QUOTES, 'UTF-8') ?></span></td>
                         <td><span class="payment-badge <?= $paymentStatus ?>"><?= htmlspecialchars($paymentLabels[$paymentStatus], ENT_QUOTES, 'UTF-8') ?></span></td>
                         <td><?= $isLow ? '<span class="low-alert">⚠ Low</span>' : '—' ?></td>
                     </tr>

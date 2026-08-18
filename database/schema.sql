@@ -39,8 +39,14 @@ CREATE TABLE IF NOT EXISTS registration_requests (
 CREATE TABLE IF NOT EXISTS suppliers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(150) NOT NULL UNIQUE,
+    contact_person VARCHAR(120) NULL,
+    email VARCHAR(150) NULL,
+    phone VARCHAR(25) NULL,
+    address VARCHAR(255) NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_by INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS inventory_items (
@@ -48,7 +54,6 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     item_name VARCHAR(100) NOT NULL,
     category VARCHAR(100) NOT NULL DEFAULT 'General Aid',
     variety VARCHAR(100) NOT NULL DEFAULT '',
-    lifecycle_status ENUM('stored', 'given-to-procedure') NOT NULL DEFAULT 'stored',
     quantity INT UNSIGNED NOT NULL DEFAULT 0,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_inventory_item_variety (item_name, variety)
@@ -73,6 +78,36 @@ CREATE TABLE IF NOT EXISTS stock_receipts (
     CONSTRAINT fk_receipt_user FOREIGN KEY (received_by) REFERENCES users(id),
     INDEX idx_receipt_date (received_date),
     INDEX idx_receipt_payment (payment_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS supplier_authorized_items (
+    supplier_id INT UNSIGNED NOT NULL,
+    item_id INT UNSIGNED NOT NULL,
+    authorized_by INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (supplier_id, item_id),
+    CONSTRAINT fk_supplier_item_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+    CONSTRAINT fk_supplier_item_item FOREIGN KEY (item_id) REFERENCES inventory_items(id) ON DELETE CASCADE,
+    CONSTRAINT fk_supplier_item_user FOREIGN KEY (authorized_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS supplier_payments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    supplier_id INT UNSIGNED NOT NULL,
+    receipt_id INT UNSIGNED NOT NULL,
+    amount DECIMAL(14,2) NOT NULL,
+    check_number VARCHAR(100) NULL,
+    check_date DATE NULL,
+    payment_date DATE NOT NULL,
+    notes TEXT NULL,
+    recorded_by INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payment_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+    CONSTRAINT fk_payment_receipt FOREIGN KEY (receipt_id) REFERENCES stock_receipts(id),
+    CONSTRAINT fk_payment_user FOREIGN KEY (recorded_by) REFERENCES users(id),
+    INDEX idx_supplier_payment_supplier (supplier_id),
+    INDEX idx_supplier_payment_receipt (receipt_id),
+    INDEX idx_supplier_payment_date (payment_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS correction_requests (
@@ -107,4 +142,19 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_settings_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_settings_group (setting_group)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NULL,
+    role VARCHAR(50) NOT NULL,
+    module VARCHAR(80) NOT NULL,
+    action VARCHAR(500) NOT NULL,
+    record_reference VARCHAR(100) NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'done',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_activity_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_activity_user_date (user_id, created_at),
+    INDEX idx_activity_date (created_at),
+    INDEX idx_activity_module (module)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
