@@ -9,6 +9,7 @@ return [
         ['icon' => '📦', 'label' => 'My Pool Quota', 'page' => 'pool-quota'],
         ['icon' => '🤝', 'label' => 'Distribute Aid', 'page' => 'distribute-aid'],
         ['icon' => '👓', 'label' => 'Pending Handover (Vision Camp)', 'page' => 'pending-handover'],
+        ['icon' => '🔵', 'label' => 'Pending Lens Handover', 'page' => 'pending-lens-handover'],
         ['icon' => '📋', 'label' => 'My Aid Requests', 'page' => 'aid-requests'],
         ['icon' => '🗃️', 'label' => 'Beneficiaries', 'page' => 'beneficiaries'],
         ['icon' => '🔄', 'label' => 'Process Return', 'page' => 'process-return'],

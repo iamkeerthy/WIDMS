@@ -9,7 +9,6 @@ return [
         ['icon' => '📦', 'label' => 'Request Goods from Store', 'page' => 'request-goods'],
         ['icon' => '👓', 'label' => 'Vision Camp / Direct Procurement', 'page' => 'vision-camp'],
         ['icon' => '🔵', 'label' => 'Contact Lens Orders', 'page' => 'contact-lens-orders'],
-        ['icon' => '📤', 'label' => 'Request for Aid Distribution', 'page' => 'aid-distribution'],
         ['icon' => '🗃️', 'label' => 'Beneficiaries', 'page' => 'beneficiaries'],
         ['icon' => '📦', 'label' => 'Distribute Items', 'page' => 'distribute-items'],
         ['icon' => '🔄', 'label' => 'Returns', 'page' => 'returns'],

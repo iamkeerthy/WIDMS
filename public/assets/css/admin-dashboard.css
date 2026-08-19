@@ -1958,6 +1958,26 @@ textarea { font: inherit; }
 .draft-aid-button { color: #075ba7; background: white; border: 1px solid var(--blue); }
 .aid-form-actions small { color: var(--muted); font-size: 10px; }
 
+/* Keep the complete Aid Request intake visible in one desktop viewport. */
+@media (min-width: 900px) {
+    .aid-requests-page { padding-top: 10px; }
+    .aid-requests-page .aid-form-card { margin-bottom: 0; }
+    .aid-requests-page .aid-card-header { min-height: 38px; padding: 8px 14px; }
+    .aid-requests-page .aid-request-form { padding: 0 14px 8px; }
+    .aid-requests-page .aid-request-form fieldset { padding-bottom: 4px; }
+    .aid-requests-page .aid-request-form legend { margin-bottom: 4px; padding: 5px 0 4px; font-size: 9px; }
+    .aid-requests-page .aid-form-grid { gap: 7px; margin-bottom: 4px; }
+    .aid-requests-page .aid-request-form input:not([type="checkbox"]),
+    .aid-requests-page .aid-request-form select { height: 29px; margin-top: 2px; padding: 4px 8px; }
+    .aid-requests-page .aid-request-form textarea { min-height: 38px; max-height: 44px; margin-top: 2px; padding: 5px 8px; }
+    .aid-requests-page .official-grid { gap: 5px; }
+    .aid-requests-page .official-grid label { min-height: 30px; padding: 4px 9px; }
+    .aid-requests-page .form-help { margin: 0 0 4px; font-size: 9px; }
+    .aid-requests-page .aid-form-actions { padding-top: 3px; }
+    .aid-requests-page .submit-aid-button,
+    .aid-requests-page .outline-action { min-height: 31px; }
+}
+
 .submitted-requests-card { margin-top: 14px; }
 
 .submitted-header > div {
@@ -1973,6 +1993,22 @@ textarea { font: inherit; }
     border-radius: 6px;
     font-size: 10px;
 }
+
+.lens-power-row { display:block; margin-top:3px; color:#075ba7; font-weight:700; }
+.request-status-pill { display:inline-block; padding:3px 10px; border-radius:999px; font-weight:700; white-space:nowrap; }
+.request-status-pill.status-pending { color:#9a5b00; background:#fff0c2; }
+.request-status-pill.status-approved,
+.request-status-pill.status-distributed { color:#08753d; background:#dff4e8; }
+.request-status-pill.status-rejected { color:#bd3029; background:#fde5e3; }
+.request-status-pill.status-draft { color:#526981; background:#e8edf2; }
+.request-status-pill.status-goods-requested { color:#075ba7; background:#e1effc; }
+.lens-overview-card { margin-bottom:14px; }
+.lens-blue-dot { display:inline-block; width:11px; height:11px; margin-right:6px; background:#0781bd; border-radius:50%; vertical-align:-1px; }
+.lens-overview-card .admin-data-header input { width:240px; height:31px; padding:5px 10px; border:1px solid var(--border); border-radius:7px; font-size:10px; }
+.lens-stock-overview .stock-quantity { color:#07863f; font-weight:800; }
+.stock-pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:9px; font-weight:700; white-space:nowrap; }
+.stock-pill.available { color:#08753d; background:#dff4e8; }
+.stock-pill.out { color:#c2332a; background:#fde4e1; }
 
 .submitted-table {
     width: 100%;
