@@ -8,14 +8,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const balanceAmount = document.getElementById('balance_amount');
     const supplier = document.getElementById('supplier_id');
     const item = document.getElementById('item_id');
+    const itemHelp = document.getElementById('item-help');
 
     function filterAuthorizedItems() {
         const supplierId = supplier.value;
+        let availableItems = 0;
         Array.from(item.options).forEach((option, index) => {
             if (index === 0) return;
-            option.hidden = supplierId === '' || !option.dataset.suppliers.includes(`,${supplierId},`);
+            const isAuthorized = supplierId !== '' && option.dataset.suppliers.includes(`,${supplierId},`);
+            option.hidden = !isAuthorized;
+            option.disabled = !isAuthorized;
+            if (isAuthorized) availableItems += 1;
         });
-        if (item.selectedOptions[0]?.hidden) item.value = '';
+        if (!supplierId || item.selectedOptions[0]?.disabled || item.selectedOptions[0]?.hidden) item.value = '';
+        item.disabled = supplierId === '' || availableItems === 0;
+        item.options[0].textContent = supplierId === ''
+            ? 'Select a supplier first'
+            : availableItems > 0 ? 'Select item and variety' : 'No authorized items for this supplier';
+        itemHelp.textContent = supplierId === ''
+            ? 'Choose a supplier to load its authorized items.'
+            : availableItems > 0
+                ? `${availableItems} authorized item${availableItems === 1 ? '' : 's'} available.`
+                : 'Authorize an item for this supplier in Supplier Management first.';
     }
 
     function calculate() {

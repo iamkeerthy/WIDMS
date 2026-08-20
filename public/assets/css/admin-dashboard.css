@@ -2066,6 +2066,31 @@ textarea { font: inherit; }
 .vision-rejection { margin:0; color:#bd3029; font-size:9px; }
 @media (max-width:767.98px) { .vision-summary-grid,.vision-request-grid { grid-template-columns:1fr; } .vision-detail-panel { position:fixed; right:10px; left:10px; width:auto; } .vision-detail-form { grid-template-columns:1fr; } }
 
+/* Keep the Vision Camp request list visible without scrolling past oversized setup cards. */
+@media (min-width: 768px) {
+    .vision-camp-dashboard { gap: 9px; padding-top: 10px; }
+    .vision-camp-dashboard .vision-summary-grid { gap: 10px; }
+    .vision-camp-dashboard .vision-summary-card {
+        min-height: 88px;
+        padding: 10px 16px 9px;
+    }
+    .vision-camp-dashboard .vision-summary-card > span { min-height: 17px; font-size: 15px; }
+    .vision-camp-dashboard .vision-summary-card p { margin: 2px 0 0; font-size: 9px; }
+    .vision-camp-dashboard .vision-summary-card strong { font-size: 20px; line-height: 1; }
+    .vision-camp-dashboard .vision-summary-card small { font-size: 8px; }
+    .vision-camp-dashboard .vision-request-card .admin-data-header { min-height: 38px; padding: 8px 16px; }
+    .vision-camp-dashboard .vision-request-form { padding: 9px 16px 11px; }
+    .vision-camp-dashboard .vision-request-form > p { margin-bottom: 6px; }
+    .vision-camp-dashboard .vision-request-grid { gap: 12px; margin-bottom: 6px; }
+    .vision-camp-dashboard .vision-request-form select { height: 30px; margin-top: 3px; padding: 4px 9px; }
+    .vision-camp-dashboard .vision-request-form textarea { min-height: 42px; height: 42px; margin-top: 3px; padding: 6px 9px; }
+    .vision-camp-dashboard .vision-form-actions { margin-top: 7px; }
+    .vision-camp-dashboard .vision-form-actions .admin-primary-action { min-height: 34px; padding: 7px 16px; }
+    .vision-camp-dashboard .vision-camp-list .admin-data-header { min-height: 38px; padding: 8px 16px; }
+    .vision-camp-dashboard .vision-camp-table th,
+    .vision-camp-dashboard .vision-camp-table td { padding-top: 10px; padding-bottom: 10px; }
+}
+
 .submitted-table {
     width: 100%;
     min-width: 1200px;
@@ -2265,4 +2290,24 @@ textarea { font: inherit; }
     .store-correction-page .correction-table { font-size: 10px; }
     .store-correction-page .correction-table th,
     .store-correction-page .correction-table td { padding: 7px 10px; }
+}
+
+/* Supplier Payments: keep at least four history rows in the desktop viewport. */
+@media (min-width: 1200px) {
+    .admin-ui .payments-page { gap: 8px; padding-top: 10px; }
+    .admin-ui .payments-page > .admin-data-card:first-of-type .admin-data-header,
+    .admin-ui .payments-page .payment-form-card .admin-data-header,
+    .admin-ui .payments-page .operation-list-card .admin-data-header { min-height: 36px; padding: 7px 14px; }
+    .admin-ui .payments-page .supplier-balance-list { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 8px 12px; }
+    .admin-ui .payments-page .supplier-balance-list article { min-height: 56px; padding: 8px 12px; }
+    .admin-ui .payments-page .supplier-balance-list article small { line-height: 1.25; }
+    .admin-ui .payments-page .payment-form { padding: 8px 16px 10px; }
+    .admin-ui .payments-page .payment-form-grid { margin-bottom: 6px; gap: 10px; }
+    .admin-ui .payments-page .payment-form input,
+    .admin-ui .payments-page .payment-form select { height: 30px; margin-top: 2px; padding: 4px 9px; }
+    .admin-ui .payments-page .payment-form textarea { height: 36px; min-height: 36px; margin-top: 2px; padding: 5px 9px; resize: vertical; }
+    .admin-ui .payments-page .payment-submit { min-height: 32px; margin-top: 6px; padding: 6px 14px; }
+    .admin-ui .payments-page .operation-list-card { min-height: 245px; margin-top: 0; }
+    .admin-ui .payments-page .payment-history-table th { padding-top: 8px; padding-bottom: 8px; }
+    .admin-ui .payments-page .payment-history-table td { padding-top: 9px; padding-bottom: 9px; }
 }

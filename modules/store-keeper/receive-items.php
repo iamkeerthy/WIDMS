@@ -18,7 +18,7 @@ $values = [
 ];
 
 try {
-    $suppliers = database()->query("SELECT id, company_name FROM suppliers WHERE status = 'active' ORDER BY company_name")->fetchAll();
+    $suppliers = database()->query("SELECT s.id, s.company_name, COUNT(sai.item_id) AS authorized_item_count FROM suppliers s LEFT JOIN supplier_authorized_items sai ON sai.supplier_id = s.id WHERE s.status = 'active' GROUP BY s.id, s.company_name ORDER BY s.company_name")->fetchAll();
     $inventoryItems = database()->query("SELECT i.id, i.item_name, i.variety, i.quantity, GROUP_CONCAT(sai.supplier_id) supplier_ids FROM inventory_items i LEFT JOIN supplier_authorized_items sai ON sai.item_id=i.id GROUP BY i.id ORDER BY i.item_name, i.variety")->fetchAll();
 } catch (PDOException $exception) {
     error_log($exception->getMessage());
@@ -100,14 +100,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $errors === []) {
     }
 }
 
-if ($suppliers !== []) {
-    $inventoryItems = database()->query("SELECT i.id, i.item_name, i.variety, i.quantity, GROUP_CONCAT(sai.supplier_id) supplier_ids FROM inventory_items i LEFT JOIN supplier_authorized_items sai ON sai.item_id=i.id GROUP BY i.id ORDER BY i.item_name, i.variety")->fetchAll();
-    $receipts = database()->query(
-        'SELECT r.id, r.quantity, r.total_cost, r.paid_amount, r.balance_amount, r.bill_number, r.received_date,
-                r.payment_status, s.company_name, i.item_name, i.variety
-         FROM stock_receipts r JOIN suppliers s ON s.id = r.supplier_id JOIN inventory_items i ON i.id = r.item_id
-         ORDER BY r.id DESC LIMIT 20'
-    )->fetchAll();
+if ($errors === []) {
+    try {
+        $receipts = database()->query(
+            'SELECT r.id, r.quantity, r.total_cost, r.paid_amount, r.balance_amount, r.bill_number, r.received_date,
+                    r.payment_status, s.company_name, i.item_name, i.variety
+             FROM stock_receipts r JOIN suppliers s ON s.id = r.supplier_id JOIN inventory_items i ON i.id = r.item_id
+             ORDER BY r.id DESC LIMIT 20'
+        )->fetchAll();
+    } catch (PDOException $exception) {
+        error_log($exception->getMessage());
+        $errors[] = 'Recent receipts could not be loaded.';
+    }
 }
 
 $statusLabels = ['fully-paid' => 'Fully Paid', 'partially-paid' => 'Partially Paid', 'unpaid' => 'Outstanding — Not Yet Paid'];
@@ -133,8 +137,8 @@ $statusLabels = ['fully-paid' => 'Fully Paid', 'partially-paid' => 'Partially Pa
             <form method="post" action="dashboard.php?page=receive-items" id="receipt-form" class="receive-form">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <div class="receive-form-grid">
-                    <label>Supplier Company<select name="supplier_id" id="supplier_id" required><option value="">Select supplier</option><?php foreach ($suppliers as $supplier): ?><option value="<?= (int) $supplier['id'] ?>" <?= (string) $supplier['id'] === $values['supplier_id'] ? 'selected' : '' ?>><?= htmlspecialchars($supplier['company_name'], ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
-                    <label>Item<select name="item_id" id="item_id" required><option value="">Select item and variety</option><?php foreach ($inventoryItems as $item): ?><option value="<?= (int) $item['id'] ?>" data-suppliers=",<?= htmlspecialchars((string)$item['supplier_ids'], ENT_QUOTES, 'UTF-8') ?>," <?= (string) $item['id'] === $values['item_id'] ? 'selected' : '' ?>><?= htmlspecialchars($item['item_name'] . ($item['variety'] !== '' ? ' — ' . $item['variety'] : '') . ' (stock: ' . $item['quantity'] . ')', ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
+                    <label>Supplier Company<select name="supplier_id" id="supplier_id" required><option value="">Select supplier first</option><?php foreach ($suppliers as $supplier): ?><?php $hasAuthorizedItems = (int) $supplier['authorized_item_count'] > 0; ?><option value="<?= (int) $supplier['id'] ?>" <?= !$hasAuthorizedItems ? 'disabled' : '' ?> <?= (string) $supplier['id'] === $values['supplier_id'] ? 'selected' : '' ?>><?= htmlspecialchars($supplier['company_name'] . ($hasAuthorizedItems ? '' : ' — no authorized items'), ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select><small>Suppliers without authorized items must be configured in Supplier Management.</small></label>
+                    <label>Item<select name="item_id" id="item_id" required disabled><option value="">Select a supplier first</option><?php foreach ($inventoryItems as $item): ?><option value="<?= (int) $item['id'] ?>" data-suppliers=",<?= htmlspecialchars((string)$item['supplier_ids'], ENT_QUOTES, 'UTF-8') ?>," <?= (string) $item['id'] === $values['item_id'] ? 'selected' : '' ?>><?= htmlspecialchars($item['item_name'] . ($item['variety'] !== '' ? ' — ' . $item['variety'] : '') . ' (stock: ' . $item['quantity'] . ')', ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select><small id="item-help">Choose a supplier to load its authorized items.</small></label>
                     <label>Quantity<input type="number" min="1" name="quantity" id="quantity" value="<?= htmlspecialchars($values['quantity'], ENT_QUOTES, 'UTF-8') ?>" required></label>
                     <label>Unit Cost (Rs)<input type="number" min="0" step="0.01" name="unit_cost" id="unit_cost" value="<?= htmlspecialchars($values['unit_cost'], ENT_QUOTES, 'UTF-8') ?>" required></label>
                     <label>Total Cost (Rs)<input type="text" id="total_cost" value="0.00" readonly></label>
